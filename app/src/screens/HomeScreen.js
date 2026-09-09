@@ -1,198 +1,241 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { pingHealth } from '../api/client';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Card from '../components/Card';
+import ActionTile from '../components/ActionTile';
+import ScoreRing from '../components/ScoreRing';
+import Badge from '../components/Badge';
+import Logo from '../components/Logo';
+import Icon from '../components/Icon';
+import { CATEGORY_ICON } from '../constants/icons';
+import { getDashboard } from '../api/client';
+import { colors, gradients, radii, spacing, type } from '../theme';
 
-const UPCOMING = [
-  { label: 'Scan medicine', owner: 'frontend' },
-  { label: 'Scan blood report', owner: 'frontend' },
-  { label: 'Check water', owner: 'frontend' },
-  { label: 'AI Health Assistant', owner: 'frontend' },
-  { label: 'Dashboard', owner: 'frontend' },
-];
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
 
-export default function HomeScreen() {
-  const [status, setStatus] = useState('idle');
-  const [detail, setDetail] = useState('Tap Start to check the API.');
+export default function HomeScreen({ onOpenScan, onOpenChat }) {
+  const [dashboard, setDashboard] = useState(null);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const start = useCallback(async () => {
-    setStatus('checking');
-    setDetail('Connecting to MedWise…');
+  const load = useCallback(async () => {
     try {
-      const body = await pingHealth();
-      if (body?.status === 'ok') {
-        setStatus('ok');
-        setDetail('API is up. Base is ready — scans and chat come next.');
-      } else {
-        setStatus('error');
-        setDetail('API answered, but health was not ok.');
-      }
-    } catch {
-      setStatus('error');
-      setDetail(
-        'Could not reach the API. Start the Spring Boot server, or set EXPO_PUBLIC_API_URL to your computer IP / Render URL.'
-      );
+      const data = await getDashboard();
+      setDashboard(data);
+      setError(null);
+    } catch (err) {
+      setError(err?.message || 'Could not reach HealthOS.');
     }
   }, []);
 
   useEffect(() => {
-    start();
-  }, [start]);
+    load();
+  }, [load]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  const medicinesTaken = dashboard?.todaysMedicines?.filter((m) => m.lastTakenAt)?.length ?? 0;
+  const medicinesTotal = dashboard?.todaysMedicines?.length ?? 0;
+  const latestWater = dashboard?.latestWater;
+  const latestBlood = dashboard?.latestBlood;
 
   return (
-    <View style={styles.screen}>
-      <Text style={styles.mark}>🩺</Text>
-      <Text style={styles.title}>MedWise</Text>
-      <Text style={styles.tagline}>One AI. Every health signal. One clear next step.</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Starting task</Text>
-        <Text style={styles.cardTitle}>Connect to the health API</Text>
-        <Text
-          style={[
-            styles.badge,
-            status === 'ok' && styles.badgeOk,
-            status === 'error' && styles.badgeError,
-            status === 'checking' && styles.badgeBusy,
-          ]}
-        >
-          {status === 'ok' ? 'Connected' : status === 'error' ? 'Not connected' : 'Checking…'}
-        </Text>
-        <Text style={styles.detail}>{detail}</Text>
-        <Pressable style={styles.button} onPress={start}>
-          <Text style={styles.buttonText}>{status === 'ok' ? 'Check again' : 'Start'}</Text>
-        </Pressable>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryDark} />}
+    >
+      <View style={styles.hero}>
+        <LinearGradient colors={gradients.glow} style={styles.glow} pointerEvents="none" />
+        <View style={styles.heroTopRow}>
+          <View style={styles.brandRow}>
+            <Logo size={32} />
+            <Text style={styles.brandName}>HealthOS</Text>
+          </View>
+        </View>
+        <Text style={styles.greeting}>{greeting()}</Text>
+        <Text style={styles.subtitle}>Your health, all in one place</Text>
       </View>
 
-      <Text style={styles.section}>Coming in this app</Text>
-      {UPCOMING.map((item) => (
-        <View key={item.label} style={styles.row}>
-          <Text style={styles.rowLabel}>{item.label}</Text>
-          <Text style={styles.rowHint}>teammate</Text>
-        </View>
-      ))}
+      {error ? (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorTitle}>Can't reach HealthOS</Text>
+          <Text style={styles.errorBody}>{error}</Text>
+        </Card>
+      ) : (
+        <Card style={styles.scoreCard}>
+          <ScoreRing score={dashboard?.healthScore ?? 0} />
+          <Text style={styles.scoreNote}>
+            {dashboard?.healthScoreNote || 'Scan a medicine, blood test, or water sample to get started.'}
+          </Text>
+        </Card>
+      )}
+
+      <Text style={styles.sectionTitle}>Today</Text>
+      <View style={styles.todayRow}>
+        <Card style={styles.todayCard}>
+          <Icon family={CATEGORY_ICON.medicine.family} name={CATEGORY_ICON.medicine.name} size={18} color={colors.medicineDark} />
+          <Text style={styles.todayValue}>
+            {medicinesTaken}/{medicinesTotal || 0}
+          </Text>
+          <Text style={styles.todayLabel}>Medicines taken</Text>
+        </Card>
+        <Card style={styles.todayCard}>
+          <Icon family={CATEGORY_ICON.water.family} name={CATEGORY_ICON.water.name} size={18} color={colors.waterDark} />
+          <Text style={styles.todayValue}>{latestWater ? `${latestWater.ph ?? '–'} pH` : '—'}</Text>
+          <Text style={styles.todayLabel}>Latest water check</Text>
+          {latestWater ? (
+            <Badge
+              label={latestWater.verdict || 'Checked'}
+              tone={latestWater.verdict?.toLowerCase().includes('safe') ? 'success' : 'warning'}
+            />
+          ) : null}
+        </Card>
+        <Card style={styles.todayCard}>
+          <Icon family={CATEGORY_ICON.blood.family} name={CATEGORY_ICON.blood.name} size={18} color={colors.bloodDark} />
+          <Text style={styles.todayValue}>{latestBlood?.flaggedValues?.length ?? 0}</Text>
+          <Text style={styles.todayLabel}>Blood values flagged</Text>
+        </Card>
+      </View>
+
+      <Text style={styles.sectionTitle}>Scan &amp; check</Text>
+      <View style={styles.grid}>
+        <ActionTile label="Scan Medicine" sublabel="Photo or name" tone="medicine" onPress={() => onOpenScan('medicine')} />
+        <ActionTile label="Scan Blood Report" sublabel="Photo or values" tone="blood" onPress={() => onOpenScan('blood')} />
+        <ActionTile label="Check Water" sublabel="pH, TDS, chlorine" tone="water" onPress={() => onOpenScan('water')} />
+        <ActionTile label="AI Health Assistant" sublabel="Ask anything" tone="assistant" onPress={onOpenChat} />
+      </View>
 
       <Text style={styles.disclaimer}>
-        MedWise is general health information, not a diagnosis or a substitute for a doctor or pharmacist.
+        {dashboard?.disclaimer ||
+          'HealthOS provides general health information and is not a substitute for professional medical advice.'}
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F4F7F5',
-    paddingHorizontal: 24,
-    paddingTop: 72,
-    paddingBottom: 32,
+    backgroundColor: colors.background,
   },
-  mark: {
-    fontSize: 36,
-    textAlign: 'center',
+  content: {
+    paddingBottom: 140,
   },
-  title: {
-    marginTop: 8,
-    fontSize: 32,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#14352C',
-  },
-  tagline: {
-    marginTop: 8,
-    marginBottom: 28,
-    fontSize: 16,
-    lineHeight: 22,
-    textAlign: 'center',
-    color: '#4A635C',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#D7E4DE',
-  },
-  cardLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: '#2F6F5E',
-  },
-  cardTitle: {
-    marginTop: 6,
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#14352C',
-  },
-  badge: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
+  hero: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: 64,
+    paddingBottom: 44,
     overflow: 'hidden',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    fontSize: 13,
-    fontWeight: '600',
-    backgroundColor: '#E8EEEB',
-    color: '#3A4A45',
   },
-  badgeOk: {
-    backgroundColor: '#D8F3E4',
-    color: '#146C43',
+  glow: {
+    position: 'absolute',
+    top: -140,
+    left: -60,
+    width: 420,
+    height: 420,
+    borderRadius: 210,
   },
-  badgeError: {
-    backgroundColor: '#FDE8E8',
-    color: '#9B1C1C',
-  },
-  badgeBusy: {
-    backgroundColor: '#E8F0FF',
-    color: '#1D4ED8',
-  },
-  detail: {
-    marginTop: 12,
-    fontSize: 15,
-    lineHeight: 21,
-    color: '#3A4A45',
-  },
-  button: {
-    marginTop: 16,
-    backgroundColor: '#1F6F5B',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  section: {
-    marginTop: 28,
-    marginBottom: 8,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6B7C76',
-  },
-  row: {
+  heroTopRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3EBE7',
+    marginBottom: spacing.xl,
   },
-  rowLabel: {
-    fontSize: 15,
-    color: '#2C3D38',
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  rowHint: {
-    fontSize: 13,
-    color: '#8A9A94',
+  brandName: {
+    ...type.subtitle,
+    color: colors.textPrimary,
+  },
+  greeting: {
+    ...type.display,
+    color: colors.textPrimary,
+  },
+  subtitle: {
+    marginTop: 4,
+    ...type.body,
+    color: colors.textSecondary,
+  },
+  scoreCard: {
+    marginHorizontal: spacing.xl,
+    marginTop: -8,
+    alignItems: 'center',
+    paddingVertical: 26,
+  },
+  scoreNote: {
+    marginTop: 16,
+    textAlign: 'center',
+    ...type.body,
+    color: colors.textSecondary,
+    paddingHorizontal: 8,
+  },
+  errorCard: {
+    marginHorizontal: spacing.xl,
+    marginTop: -8,
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.bloodDark,
+  },
+  errorTitle: {
+    ...type.subtitle,
+    color: colors.bloodDark,
+  },
+  errorBody: {
+    marginTop: 6,
+    ...type.body,
+    color: colors.textSecondary,
+  },
+  sectionTitle: {
+    ...type.label,
+    color: colors.textMuted,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.xl,
+  },
+  todayRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: spacing.xl,
+  },
+  todayCard: {
+    flex: 1,
+    alignItems: 'flex-start',
+    padding: 14,
+    gap: 4,
+  },
+  todayValue: {
+    ...type.title,
+    fontSize: 18,
+    color: colors.textPrimary,
+  },
+  todayLabel: {
+    ...type.caption,
+    color: colors.textSecondary,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingHorizontal: spacing.xl,
   },
   disclaimer: {
-    marginTop: 24,
+    marginTop: spacing.xxl,
+    marginHorizontal: spacing.xl,
     fontSize: 12,
     lineHeight: 18,
-    color: '#6B7C76',
+    color: colors.textMuted,
   },
 });
