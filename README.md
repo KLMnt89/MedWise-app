@@ -8,6 +8,8 @@ The user takes a photo (or types values manually) and receives clear, structured
 
 MedWise is designed as an **information and safety-support tool**, not as a replacement for professional medical advice.
 
+![HealthOS architecture, user flow, and dashboard](docs/healthos-overview.jpg)
+
 ---
 
 # 🏗️ Architecture
