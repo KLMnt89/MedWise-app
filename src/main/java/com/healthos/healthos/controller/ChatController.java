@@ -27,7 +27,7 @@ public class ChatController {
         return chatService.chat(request.message());
     }
 
-    @GetMapping("/history")
+    @GetMapping({"", "/history"})
     public List<ChatMessageResponse> history() {
         return chatService.history();
     }

@@ -70,4 +70,10 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.healthScore").exists());
     }
+
+    @Test
+    void chatGetReturnsHistory() throws Exception {
+        mockMvc.perform(get("/api/chat"))
+                .andExpect(status().isOk());
+    }
 }
