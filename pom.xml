@@ -8,11 +8,11 @@
         <version>4.1.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.medwise</groupId>
-    <artifactId>medwise</artifactId>
+    <groupId>com.healthos</groupId>
+    <artifactId>healthos</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>medwise</name>
-    <description>medwise</description>
+    <name>healthos</name>
+    <description>healthos</description>
     <url/>
     <licenses>
         <license/>

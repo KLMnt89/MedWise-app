@@ -2,11 +2,11 @@
 
 > One AI. Every health signal. One clear next step.
 
-MedWise is a mobile-first app that lets a person scan a medicine, a blood test, or a glass of water, and get one AI-generated answer that ties everything together with their history.
+HealthOS is a mobile-first app that lets a person scan a medicine, a blood test, or a glass of water, and get one AI-generated answer that ties everything together with their history.
 
 The user takes a photo (or types values manually) and receives clear, structured information, with **Gemini AI** doing the OCR, the analysis, and the plain-language explanation.
 
-MedWise is designed as an **information and safety-support tool**, not as a replacement for professional medical advice.
+HealthOS is designed as an **information and safety-support tool**, not as a replacement for professional medical advice.
 
 ![HealthOS architecture, user flow, and dashboard](docs/healthos-overview.jpg)
 
@@ -17,7 +17,7 @@ MedWise is designed as an **information and safety-support tool**, not as a repl
 ```text
 ┌───────────────────────────────┐
 │         📱 iPhone / Web       │
-│         MedWise App          │
+│         HealthOS App          │
 │                                │
 │  Scan Medicine                │
 │  Scan Blood Report             │
@@ -101,7 +101,7 @@ Gemini (OCR + analysis) ── if it fails ──▶ local rule-based fallback
 
 ## Database
 
-* H2, file-based (`jdbc:h2:file:./data/medwise`) — not in-memory, so data survives restarts
+* H2, file-based (`jdbc:h2:file:./data/healthos`) — not in-memory, so data survives restarts
 * Swappable for PostgreSQL later via a config change (JPA means no code rewrite)
 
 ## AI
@@ -121,11 +121,11 @@ Gemini (OCR + analysis) ── if it fails ──▶ local rule-based fallback
 # 📂 Project Structure
 
 ```text
-medwise/
+healthos/
 │
 ├── backend/                      Spring Boot
-│   ├── src/main/java/com/medwise/
-│   │   ├── MedwiseApplication.java
+│   ├── src/main/java/com/healthos/
+│   │   ├── HealthosApplication.java
 │   │   ├── config/                GeminiConfig
 │   │   ├── controller/             Medicine, Blood, Water, Chat, Dashboard
 │   │   ├── service/                Medicine, Blood, Water, Chat, Gemini, Dashboard
@@ -354,7 +354,7 @@ Browser (Netlify) ──┼── HTTPS ──▶  Render  (Spring Boot + Postgr
                     ┘                     GEMINI_API_KEY and EXA_API_KEY live here only
 ```
 
-| Option | Role for MedWise |
+| Option | Role for HealthOS |
 |---|---|
 | **Render** | Spring Boot API + managed Postgres. `$100` credits cover a small always-on Java service. Set `SPRING_PROFILES_ACTIVE=prod` and the Gemini key as env vars. |
 | **Netlify** | Expo web export (`npx expo export --platform web`). HTTPS for the browser app. `3,000` credits. |
@@ -370,7 +370,7 @@ Switching later is a config change (JDBC URL + `EXPO_PUBLIC_API_URL`), not a rew
 
 Promo codes stay in the vendor dashboards — **never commit them** (not in this README, not in `.env.example`, not in Git).
 
-| Credit | Amount | Use for MedWise |
+| Credit | Amount | Use for HealthOS |
 |---|---|---|
 | **Render** | $100 | **Deploy now.** Backend + Postgres, always-on so the health app does not sleep. |
 | **Netlify** | 3,000 credits | **Deploy now.** Host the Expo web build. |
@@ -407,7 +407,7 @@ Redeem Render and Netlify first. Point Expo Go / Netlify at the Render URL. Neve
 
 # ⚠️ Medical Disclaimer
 
-MedWise provides general health information and is not a substitute for professional medical advice.
+HealthOS provides general health information and is not a substitute for professional medical advice.
 
 Information provided by the app should not be used to diagnose a condition, change prescribed treatment, or make emergency medical decisions.
 
@@ -463,6 +463,6 @@ Apple Developer account → signed build → submission
 
 ---
 
-## 👨‍💻 MedWise
+## 👨‍💻 HealthOS
 
-**MedWise — Scan it. Understand it. Know your next step.**
+**HealthOS — Scan it. Understand it. Know your next step.**

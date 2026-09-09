@@ -23,8 +23,8 @@ stop_pidfile .app.pid
 
 # Catch leftovers even if start.sh was not used
 pkill -f "spring-boot:run" 2>/dev/null || true
-pkill -f "com.medwise.medwise.MedwiseApplication" 2>/dev/null || true
+pkill -f "com.healthos.healthos.HealthosApplication" 2>/dev/null || true
 pkill -f "expo start" 2>/dev/null || true
 pkill -f "metro" 2>/dev/null || true
 
-echo "Stopped MedWise processes."
+echo "Stopped HealthOS processes."
