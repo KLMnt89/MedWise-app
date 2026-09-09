@@ -3,6 +3,10 @@
   command = "npx expo export --platform web"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "20"
+  EXPO_PUBLIC_API_URL = "https://medwise-api-dghq.onrender.com"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

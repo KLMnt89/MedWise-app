@@ -77,7 +77,7 @@ export default function ScanMedicineScreen({ onBack }) {
           <Card style={styles.resultCard}>
             <View style={styles.resultHeader}>
               <Text style={styles.resultTitle}>AI Analysis</Text>
-              {result.fallback ? <Badge label="Offline estimate" tone="warning" /> : <Badge label="Gemini AI" tone="primary" />}
+              {result.fallback ? <Badge label="Basic analysis" tone="warning" /> : <Badge label="Exa" tone="primary" />}
             </View>
 
             <Row label="Name" value={result.name} />

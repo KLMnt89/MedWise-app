@@ -73,7 +73,7 @@ export default function ScanBloodScreen({ onBack }) {
           <Card style={styles.resultCard}>
             <View style={styles.resultHeader}>
               <Text style={styles.resultTitle}>AI Analysis</Text>
-              {result.fallback ? <Badge label="Offline estimate" tone="warning" /> : <Badge label="Gemini AI" tone="danger" />}
+              {result.fallback ? <Badge label="Basic analysis" tone="warning" /> : <Badge label="Exa" tone="danger" />}
             </View>
 
             {result.summary ? <Text style={styles.summary}>{result.summary}</Text> : null}

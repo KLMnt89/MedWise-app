@@ -74,7 +74,7 @@ export default function CheckWaterScreen({ onBack }) {
           <Card style={styles.resultCard}>
             <View style={styles.resultHeader}>
               <Text style={styles.resultTitle}>AI Analysis</Text>
-              {result.fallback ? <Badge label="Offline estimate" tone="warning" /> : <Badge label="Gemini AI" tone="info" />}
+              {result.fallback ? <Badge label="Basic analysis" tone="warning" /> : <Badge label="Exa" tone="info" />}
             </View>
 
             <Badge

@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, type } from '../theme';
 
 export default function ChatBubble({ role, content }) {
-  const isUser = role === 'user';
+  const isUser = String(role || '').toLowerCase() === 'user';
   return (
     <View style={[styles.row, isUser && styles.rowUser]}>
       {!isUser ? (

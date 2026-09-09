@@ -23,7 +23,7 @@ export default function ProfileScreen() {
         <Text style={styles.cardLabel}>About</Text>
         <Text style={styles.cardBody}>
           HealthOS scans a medicine, a blood test, or a glass of water and turns it into one clear,
-          personalized next step — powered by Gemini AI.
+          personalized next step — with Exa for lookup and a local fallback if AI is unavailable.
         </Text>
       </Card>
 

@@ -1,12 +1,13 @@
 /**
  * HealthOS API client.
  *
- * Local web: http://localhost:8080
- * iPhone (Expo Go): http://YOUR_LAN_IP:8080  (localhost on the phone is the phone)
- * Deployed: https://your-render-service.onrender.com
+ * Override with EXPO_PUBLIC_API_URL.
+ * Default is the deployed Render API so Expo Go / Netlify work without extra setup.
  */
+import { Platform } from 'react-native';
+
 export const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080'
+  process.env.EXPO_PUBLIC_API_URL || 'https://medwise-api-dghq.onrender.com'
 ).replace(/\/$/, '');
 
 export function apiUrl(path) {
@@ -15,17 +16,18 @@ export function apiUrl(path) {
 }
 
 async function handle(response) {
+  const text = await response.text();
+  let body = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = null;
+  }
   if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    try {
-      const body = await response.json();
-      message = body?.message || message;
-    } catch {
-      // ignore body parse errors
-    }
+    const message = body?.message || `Request failed (${response.status})`;
     throw new Error(message);
   }
-  return response.json();
+  return body;
 }
 
 export async function getJson(path) {
@@ -44,21 +46,57 @@ export async function postJson(path, payload) {
 
 export async function postForm(path, fields) {
   const form = new FormData();
-  Object.entries(fields).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined || value === null || value === '') {
+      continue;
+    }
+    if (key === 'image') {
+      await appendImage(form, value);
+      continue;
+    }
     form.append(key, value);
-  });
+  }
   const response = await fetch(apiUrl(path), { method: 'POST', body: form });
   return handle(response);
 }
 
-export function toUploadFile(asset) {
-  if (!asset) return undefined;
-  const uri = asset.uri;
-  const name = uri.split('/').pop() || 'photo.jpg';
-  const match = /\.(\w+)$/.exec(name);
-  const type = asset.mimeType || (match ? `image/${match[1]}` : 'image/jpeg');
-  return { uri, name, type };
+async function appendImage(form, image) {
+  if (!image) {
+    return;
+  }
+  const uri = image.uri || image;
+  const name = image.name || (typeof uri === 'string' ? uri.split('/').pop() : 'scan.jpg') || 'scan.jpg';
+  const type = image.mimeType || image.type || 'image/jpeg';
+  if (Platform.OS === 'web') {
+    const blob = await fetch(uri).then((res) => res.blob());
+    form.append('image', blob, name);
+    return;
+  }
+  form.append('image', { uri, name, type });
+}
+
+/** Turn "Glucose 7.2, Vitamin D 18" or {"glucose":7.2} into a JSON string for POST /api/blood/scan. */
+export function parseLabValues(text) {
+  if (!text || !String(text).trim()) {
+    return undefined;
+  }
+  const trimmed = String(text).trim();
+  if (trimmed.startsWith('{')) {
+    JSON.parse(trimmed);
+    return trimmed;
+  }
+  const out = {};
+  const re = /([A-Za-z][A-Za-z0-9 %\-]*)\s*[:=]?\s*(\d+(?:\.\d+)?)/g;
+  let match = re.exec(trimmed);
+  while (match) {
+    const key = match[1].trim().toLowerCase().replace(/\s+/g, '_');
+    out[key] = Number(match[2]);
+    match = re.exec(trimmed);
+  }
+  if (Object.keys(out).length === 0) {
+    throw new Error('Enter values like Glucose 7.2 or JSON {"glucose": 7.2}');
+  }
+  return JSON.stringify(out);
 }
 
 export async function pingHealth() {
@@ -70,7 +108,7 @@ export async function getDashboard() {
 }
 
 export async function scanMedicine({ name, image }) {
-  return postForm('/api/medicine/scan', { name, image: toUploadFile(image) });
+  return postForm('/api/medicine/scan', { name, image });
 }
 
 export async function markMedicineTaken(id) {
@@ -83,7 +121,8 @@ export async function listMedicines() {
 }
 
 export async function scanBlood({ values, image }) {
-  return postForm('/api/blood/scan', { values, image: toUploadFile(image) });
+  const encoded = values ? parseLabValues(values) : undefined;
+  return postForm('/api/blood/scan', { values: encoded, image });
 }
 
 export async function listBloodScans() {
@@ -103,5 +142,6 @@ export async function sendChatMessage(message) {
 }
 
 export async function getChatHistory() {
-  return getJson('/api/chat/history');
+  const data = await getJson('/api/chat');
+  return Array.isArray(data) ? data : [];
 }
