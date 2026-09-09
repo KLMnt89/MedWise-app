@@ -1,0 +1,8 @@
+---
+description: Git commits have no co-author trailers
+alwaysApply: true
+---
+
+# Commits
+
+Write a normal commit message only. Never add `Co-authored-by`, Cursor attribution, or other trailers.
