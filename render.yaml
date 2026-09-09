@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: medwise-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: EXA_API_KEY
+        sync: false

@@ -455,7 +455,7 @@ Apple Developer account → signed build → submission
 ☐ Dashboard endpoint
 ☑ Expo starting page (health ping); remaining screens owned by frontend teammate
 ☐ Expo/React Native feature screens (medicine, blood, water, chat, dashboard)
-☐ Render + Netlify deployment (credits available)
+☑ Render + Netlify config in repo (`render.yaml`, `netlify.toml`); connect GitHub in each dashboard to go live
 ☐ Apple Developer account / App Store build (deferred)
 ```
 
