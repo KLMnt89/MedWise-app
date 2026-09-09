@@ -91,7 +91,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'assistant',
         label: 'AI Insights',
-        emoji: '✨',
         tone: 'assistant',
         summary:
           dashboard?.healthScoreNote ||
@@ -104,17 +103,16 @@ export default function HistoryScreen({ onOpenChat }) {
     const events = [];
     medicines.forEach((m) => {
       if (m.lastTakenAt) {
-        events.push({ id: `med-${m.id}`, time: m.lastTakenAt, emoji: '💊', title: `${m.name} taken`, tone: 'medicine' });
+        events.push({ id: `med-${m.id}`, time: m.lastTakenAt, title: `${m.name} taken`, tone: 'medicine' });
       }
     });
     bloodScans.forEach((b) => {
-      events.push({ id: `blood-${b.id}`, time: b.createdAt, emoji: '🩸', title: 'Blood report analyzed', tone: 'blood' });
+      events.push({ id: `blood-${b.id}`, time: b.createdAt, title: 'Blood report analyzed', tone: 'blood' });
     });
     waterChecks.forEach((w) => {
       events.push({
         id: `water-${w.id}`,
         time: w.createdAt,
-        emoji: '💧',
         title: `Water check · ${w.verdict || 'Checked'}`,
         tone: 'water',
       });
