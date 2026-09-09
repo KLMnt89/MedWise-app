@@ -1,4 +1,4 @@
-# MedWise 🩺
+# HealthOS 🩺
 
 > One AI. Every health signal. One clear next step.
 
