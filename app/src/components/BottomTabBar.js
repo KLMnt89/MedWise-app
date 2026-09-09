@@ -1,12 +1,14 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Icon from './Icon';
+import { TAB_ICON } from '../constants/icons';
 import { colors, fonts, gradients, radii, shadow } from '../theme';
 
 const TABS = [
-  { key: 'home', label: 'Home', emoji: '🏠' },
-  { key: 'history', label: 'History', emoji: '📊' },
-  { key: 'chat', label: 'Chat', emoji: '💬' },
-  { key: 'profile', label: 'Profile', emoji: '🙂' },
+  { key: 'home', label: 'Home' },
+  { key: 'history', label: 'History' },
+  { key: 'chat', label: 'Chat' },
+  { key: 'profile', label: 'Profile' },
 ];
 
 export default function BottomTabBar({ active, onChange }) {
@@ -15,6 +17,7 @@ export default function BottomTabBar({ active, onChange }) {
       <View style={styles.bar}>
         {TABS.map((tab) => {
           const isActive = tab.key === active;
+          const icon = TAB_ICON[tab.key];
           return (
             <Pressable key={tab.key} onPress={() => onChange(tab.key)} style={styles.item} hitSlop={6}>
               {isActive ? (
@@ -24,11 +27,11 @@ export default function BottomTabBar({ active, onChange }) {
                   end={{ x: 1, y: 1 }}
                   style={styles.iconWrapActive}
                 >
-                  <Text style={styles.emoji}>{tab.emoji}</Text>
+                  <Icon family={icon.family} name={icon.name} size={17} color="#FFFFFF" />
                 </LinearGradient>
               ) : (
                 <View style={styles.iconWrap}>
-                  <Text style={styles.emoji}>{tab.emoji}</Text>
+                  <Icon family={icon.family} name={icon.name} size={17} color={colors.textMuted} />
                 </View>
               )}
               <Text style={[styles.label, isActive && styles.labelActive]}>{tab.label}</Text>
@@ -49,7 +52,9 @@ const styles = StyleSheet.create({
   },
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.backgroundElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: radii.xl,
     paddingVertical: 10,
     paddingHorizontal: 8,
@@ -74,9 +79,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 16,
   },
   label: {
     fontSize: 11,

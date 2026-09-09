@@ -3,7 +3,9 @@ import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View }
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import HealthGraph from '../components/HealthGraph';
+import Icon from '../components/Icon';
 import { GhostButton } from '../components/Buttons';
+import { CATEGORY_ICON } from '../constants/icons';
 import { colors, fonts, spacing, type } from '../theme';
 import { getDashboard, listBloodScans, listMedicines, listWaterChecks } from '../api/client';
 
@@ -64,7 +66,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'medicine',
         label: 'Medicine',
-        emoji: '💊',
         tone: 'medicine',
         summary:
           medicines.length === 0
@@ -74,7 +75,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'blood',
         label: 'Blood',
-        emoji: '🩸',
         tone: 'blood',
         summary: latestBlood
           ? `${latestBlood.flaggedValues?.length ?? 0} value(s) flagged. ${latestBlood.summary || ''}`.trim()
@@ -83,7 +83,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'water',
         label: 'Water',
-        emoji: '💧',
         tone: 'water',
         summary: latestWater
           ? `${latestWater.verdict || 'Checked'} · pH ${latestWater.ph ?? '–'}, TDS ${latestWater.tds ?? '–'}.`

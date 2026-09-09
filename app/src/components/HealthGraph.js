@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Circle as SvgCircle, Stop } from 'react-native-svg';
+import Icon from './Icon';
+import { CATEGORY_ICON } from '../constants/icons';
 import { colors, fonts, gradients, radii, type } from '../theme';
 
 const SOFT = {
@@ -91,7 +93,12 @@ export default function HealthGraph({ score = 0, nodes, size = 300 }) {
                   },
                 ]}
               >
-                <Text style={{ fontSize: nodeR * 0.85 }}>{node.emoji}</Text>
+                <Icon
+                  family={CATEGORY_ICON[node.tone]?.family}
+                  name={CATEGORY_ICON[node.tone]?.name}
+                  size={nodeR * 0.85}
+                  color={DARK[node.tone]}
+                />
               </Pressable>
             );
           })}
@@ -101,7 +108,12 @@ export default function HealthGraph({ score = 0, nodes, size = 300 }) {
       {active ? (
         <View style={[styles.panel, { backgroundColor: SOFT[active.tone] }]}>
           <View style={styles.panelHeader}>
-            <Text style={styles.panelEmoji}>{active.emoji}</Text>
+            <Icon
+              family={CATEGORY_ICON[active.tone]?.family}
+              name={CATEGORY_ICON[active.tone]?.name}
+              size={16}
+              color={DARK[active.tone]}
+            />
             <Text style={[styles.panelTitle, { color: DARK[active.tone] }]}>{active.label}</Text>
           </View>
           <Text style={styles.panelBody}>{active.summary}</Text>
