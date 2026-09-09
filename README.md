@@ -108,7 +108,7 @@ Gemini (OCR + analysis) ── if it fails ──▶ local rule-based fallback
 
 ## Infrastructure (later, once we deploy)
 
-* Railway (recommended — see [Deployment](#-deployment), one-click deploy from GitHub, managed Postgres add-on, no free-tier cold-start sleep unlike Render)
+* **Render** for the Spring Boot API + Postgres, **Netlify** for the Expo web build — see [Deployment](#-deployment) and [Credits](#credits--student-opportunities). Paid Render avoids the free-tier cold start.
 
 ## API Documentation
 
@@ -218,7 +218,7 @@ POST /api/chat
 }
 ```
 
-Pulls the last 6 months of medicine/blood/water history (recent entries in full, older ones summarized) as context before calling Gemini.
+Pulls the last 6 months of medicine/blood/water history (recent entries in full, older ones summarized), then optionally looks up public-web snippets with **Exa**, then asks Gemini for one plain-language next step. If Exa fails or the key is missing, chat still works on history + Gemini alone. Reply `source` is `GEMINI_EXA` when web results were used.
 
 ```http
 GET /api/chat/history
@@ -249,6 +249,12 @@ GeminiService.call(prompt, image?)
                   • Blood: simple reference-range rules
                   • Water: pH / TDS / chlorine thresholds
                   → clearly labeled "AI unavailable, showing basic analysis"
+
+POST /api/chat
+    │
+    ├── user history (6 months)
+    ├── Exa search (optional; skipped if the key is missing or the call fails)
+    └── Gemini writes the reply — web snippets are unverified background, not clinical evidence
 ```
 
 The AI must not:
@@ -281,12 +287,13 @@ Every table is scoped by `user_id` from day one (single-user, no login for the M
 
 Secrets and environment-specific configuration must never be committed to Git.
 
-Create a local `backend/.env` file based on `backend/.env.example` (already confirmed and in place):
+Create a local `.env` file based on `.env.example` (already confirmed and in place):
 
 ```env
 GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
-PORT=8080
+GEMINI_MODEL=gemini-2.5-flash-lite
+EXA_API_KEY=
+SERVER_PORT=8080
 ```
 
 `.gitignore` already excludes `.env` and the H2 data files.
@@ -331,22 +338,47 @@ npx expo start
 
 Scan the QR code with **Expo Go** on your iPhone for the native app, or press `w` for the web build in a browser.
 
-Important: on the iPhone, `localhost` refers to the iPhone itself, not your computer. When connecting to a locally running backend, the app needs your computer's local network IP (e.g. `http://YOUR_COMPUTER_IP:8080`), configurable in `app/src/api/client.js` rather than hardcoded. For the deployed version, this becomes the Railway backend URL.
+Important: on the iPhone, `localhost` refers to the iPhone itself, not your computer. When connecting to a locally running backend, the app needs your computer's local network IP (e.g. `http://YOUR_COMPUTER_IP:8080`), configurable in `app/src/api/client.js` rather than hardcoded. For the deployed version, this becomes the Render backend URL.
 
 ---
 
 # 🐳 Deployment
 
-**Recommendation: Railway**, once the app is ready to deploy.
+**Current pick: Render (API) + Netlify (web)**, using available student/partner credits. A paid Render instance stays warm — the old objection to Render was only the *free-tier* ~30s cold start.
 
-| Option | Why it's not the pick |
+```text
+iPhone (Expo Go)  ──┐
+Browser (Netlify) ──┼── HTTPS ──▶  Render  (Spring Boot + Postgres)
+                    ┘                     GEMINI_API_KEY and EXA_API_KEY live here only
+```
+
+| Option | Role for MedWise |
 |---|---|
-| Render | Close second, but its free tier cold-starts (~30s wake-up) — bad first impression for a health app. |
-| Fly.io | More control, but more manual setup (Dockerfile, `fly.toml`, volumes) than this stage needs. |
+| **Render** | Spring Boot API + managed Postgres. `$100` credits cover a small always-on Java service. Set `SPRING_PROFILES_ACTIVE=prod` and the Gemini key as env vars. |
+| **Netlify** | Expo web export (`npx expo export --platform web`). HTTPS for the browser app. `3,000` credits. |
+| Railway | Still a good host, but we have Render credits and no Railway credits. Keep as a fallback. |
+| Fly.io | More control, more manual setup than this stage needs. |
 | Self-hosted VPS | Cheapest at scale, but you own OS updates, security, backups, and uptime. |
-| **Railway** | One-click deploy from GitHub, auto-detects Spring Boot, managed Postgres add-on one click away when we move off H2, env vars set the same way as the local `.env`, no cold-start sleep. |
 
-Switching later (e.g. to Fly.io) is a config change, not a rewrite, since nothing in the code is Railway-specific.
+Switching later is a config change (JDBC URL + `EXPO_PUBLIC_API_URL`), not a rewrite.
+
+---
+
+# Credits / student opportunities
+
+Promo codes stay in the vendor dashboards — **never commit them** (not in this README, not in `.env.example`, not in Git).
+
+| Credit | Amount | Use for MedWise |
+|---|---|---|
+| **Render** | $100 | **Deploy now.** Backend + Postgres, always-on so the health app does not sleep. |
+| **Netlify** | 3,000 credits | **Deploy now.** Host the Expo web build. |
+| **Cursor** | $30 | Keep building features in this repo. |
+| **Exa** | $50 | **Wired into `POST /api/chat`.** Public-web lookup before Gemini replies. Set `EXA_API_KEY` on the server (and on Render later). |
+| **Firecrawl** | 10,000 credits | Skip for MVP. Scraping drug/label sites has ToS risk; Gemini already reads the photo. |
+| **ElevenLabs** | 1 month | Optional later: spoken summaries. Demo, not launch. |
+| **Wispr Flow** | 3 months Flow Pro | Personal dictation while coding. Not part of the product. |
+
+Redeem Render and Netlify first. Point Expo Go / Netlify at the Render URL. Never put `GEMINI_API_KEY` or `EXA_API_KEY` on Netlify.
 
 ---
 
@@ -367,7 +399,7 @@ Switching later (e.g. to Fly.io) is a config change, not a rewrite, since nothin
 * Handle Gemini failures without leaking stack traces to the client.
 * Avoid logging secrets.
 * Avoid storing more personal health data than the feature needs.
-* HTTPS in production (handled by Railway).
+* HTTPS in production (handled by Render and Netlify).
 
 ---
 
@@ -393,13 +425,13 @@ Medicine scan → Blood scan → Water check, each with photo + manual entry and
 Wire real Gemini calls into all three scans, fallback becomes the safety net rather than the primary path
 
 ## Phase 4 — AI Health Assistant
-Chat endpoint pulling 6 months of history (summarized) as context
+Chat endpoint pulling 6 months of history (summarized) as context, plus Exa web lookup before Gemini replies
 
 ## Phase 5 — Mobile
 Expo/React Native app wired to the backend, iPhone-first with a web build from the same code
 
 ## Phase 6 — Deployment
-Railway (backend + Postgres) → HTTPS → app points at the deployed URL
+Render (backend + Postgres) + Netlify (Expo web) → HTTPS → app points at the Render URL
 
 ## Phase 7 — App Store (later, deferred)
 Apple Developer account → signed build → submission
@@ -422,7 +454,7 @@ Apple Developer account → signed build → submission
 ☐ AI Health Assistant chat + 6-month context
 ☐ Dashboard endpoint
 ☐ Expo/React Native app (iPhone + web)
-☐ Railway deployment
+☐ Render + Netlify deployment (credits available)
 ☐ Apple Developer account / App Store build (deferred)
 ```
 

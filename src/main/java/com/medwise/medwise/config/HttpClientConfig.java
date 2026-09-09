@@ -17,6 +17,13 @@ public class HttpClientConfig {
     }
 
     @Bean
+    public RestClient exaRestClient() {
+        return RestClient.builder()
+                .defaultHeader("Content-Type", "application/json")
+                .build();
+    }
+
+    @Bean
     @Primary
     public JsonMapper jsonMapper() {
         return JsonMapper.builder().build();
