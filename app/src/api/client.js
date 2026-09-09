@@ -129,7 +129,15 @@ export async function listBloodScans() {
   return getJson('/api/blood');
 }
 
-export async function checkWater({ ph, tds, chlorine }) {
+export async function checkWater({ ph, tds, chlorine, image }) {
+  if (image) {
+    return postForm('/api/water/check', {
+      ph: ph == null || ph === '' ? undefined : String(ph),
+      tds: tds == null || tds === '' ? undefined : String(tds),
+      chlorine: chlorine == null || chlorine === '' ? undefined : String(chlorine),
+      image,
+    });
+  }
   return postJson('/api/water/check', { ph, tds, chlorine });
 }
 

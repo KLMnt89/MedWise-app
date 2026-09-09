@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import ScreenHeader from '../components/ScreenHeader';
+import PhotoCapture from '../components/PhotoCapture';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import ScanningOverlay from '../components/ScanningOverlay';
@@ -14,24 +15,27 @@ function isSafe(verdict) {
 }
 
 export default function CheckWaterScreen({ onBack }) {
+  const [image, setImage] = useState(null);
   const [ph, setPh] = useState('');
   const [tds, setTds] = useState('');
   const [chlorine, setChlorine] = useState('');
   const [result, setResult] = useState(null);
   const { loading, error, run } = useAsync();
 
-  const canCheck = useMemo(
+  const hasReadings = useMemo(
     () => ph.trim() !== '' && tds.trim() !== '' && chlorine.trim() !== '',
     [ph, tds, chlorine]
   );
+  const canCheck = Boolean(image || hasReadings);
 
   const submit = () =>
     run(async () => {
       const response = await withMinDuration(
         checkWater({
-          ph: Number(ph),
-          tds: Number(tds),
-          chlorine: Number(chlorine),
+          ph: hasReadings ? Number(ph) : undefined,
+          tds: hasReadings ? Number(tds) : undefined,
+          chlorine: hasReadings ? Number(chlorine) : undefined,
+          image,
         }),
         2200
       );
@@ -43,16 +47,26 @@ export default function CheckWaterScreen({ onBack }) {
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScanningOverlay
         visible={loading}
+        imageUri={image?.uri}
         tone="water"
         steps={['Reading your values…', 'Comparing to safe ranges…', 'Connecting health context…', 'Generating insights…']}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ScreenHeader
           title="Check Water"
-          subtitle="Enter your test-strip readings"
+          subtitle="Photo of the water, or enter strip readings"
           tone="water"
           onBack={onBack}
         />
+
+        <PhotoCapture
+          image={image}
+          onChange={setImage}
+          tone="water"
+          hint="Take a photo of the glass, tap, or test strip. AI will say what it thinks."
+        />
+
+        <Text style={styles.orText}>or enter readings manually</Text>
 
         <Card style={styles.formCard}>
           <Field label="pH" value={ph} onChangeText={setPh} placeholder="7.2" suffix="" />
@@ -74,7 +88,11 @@ export default function CheckWaterScreen({ onBack }) {
           <Card style={styles.resultCard}>
             <View style={styles.resultHeader}>
               <Text style={styles.resultTitle}>AI Analysis</Text>
-              {result.fallback ? <Badge label="Basic analysis" tone="warning" /> : <Badge label="Exa" tone="info" />}
+              {result.fallback ? (
+                <Badge label="Basic analysis" tone="warning" />
+              ) : (
+                <Badge label={result.source === 'GEMINI' ? 'AI' : 'Exa'} tone="info" />
+              )}
             </View>
 
             <Badge
@@ -138,6 +156,11 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingBottom: 40,
     gap: spacing.lg,
+  },
+  orText: {
+    textAlign: 'center',
+    ...type.caption,
+    color: colors.textMuted,
   },
   formCard: {
     gap: 16,

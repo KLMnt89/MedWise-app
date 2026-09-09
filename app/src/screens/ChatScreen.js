@@ -267,7 +267,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
-    paddingBottom: Platform.select({ ios: 32, default: spacing.xl }),
+    paddingBottom: Platform.select({ ios: 128, android: 118, default: 118 }),
+    zIndex: 2,
     backgroundColor: colors.background,
   },
   input: {

@@ -143,6 +143,14 @@ public class FallbackRules {
         return new BloodFallback(summary, flagged, recommendations);
     }
 
+    public WaterFallback waterFromPhoto() {
+        return new WaterFallback(
+                "caution",
+                "strip photo",
+                "AI could not review this photo. This is not a lab result and does not mean the water is safe or unsafe."
+        );
+    }
+
     public WaterFallback water(double ph, double tds, double chlorine) {
         List<String> issues = new ArrayList<>();
         if (ph < 6.5 || ph > 8.5) {

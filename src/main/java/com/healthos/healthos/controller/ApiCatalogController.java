@@ -30,7 +30,7 @@ public class ApiCatalogController {
                 endpoint("GET", "/api/medicine", "Medicine history for the default user."),
                 endpoint("POST", "/api/blood/scan", "Multipart: values JSON string and/or image. Image-only uses local rules."),
                 endpoint("GET", "/api/blood", "Blood report history."),
-                endpoint("POST", "/api/water/check", "JSON: ph, tds, chlorine."),
+                endpoint("POST", "/api/water/check", "JSON ph/tds/chlorine (Exa), or a photo (vision AI says what it thinks about the water)."),
                 endpoint("GET", "/api/water", "Water check history."),
                 endpoint("POST", "/api/chat", "JSON: {\"message\":\"...\"}. Uses Exa, then local fallback."),
                 endpoint("GET", "/api/chat", "Chat history (same as GET /api/chat/history).")

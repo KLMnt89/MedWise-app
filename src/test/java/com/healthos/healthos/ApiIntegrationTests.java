@@ -1,6 +1,7 @@
 package com.healthos.healthos;
 
 import com.healthos.healthos.service.ExaService;
+import com.healthos.healthos.service.GeminiService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,10 +11,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,6 +35,12 @@ class ApiIntegrationTests {
 
     @MockitoBean
     private ExaService exaService;
+
+    @MockitoBean
+    private GeminiService geminiService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void healthIsOk() throws Exception {
@@ -110,6 +119,32 @@ class ApiIntegrationTests {
         mockMvc.perform(get("/api/water"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void waterCheckAcceptsStripPhotoWithoutReadings() throws Exception {
+        mockMvc.perform(multipart("/api/water/check")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "image", "strip.jpg", "image/jpeg", new byte[] {1, 2, 3})))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fallback").value(true))
+                .andExpect(jsonPath("$.verdict").value("caution"));
+    }
+
+    @Test
+    void waterPhotoUsesVisionAiOpinion() throws Exception {
+        when(geminiService.generateJson(anyString(), any(), any())).thenReturn(
+                Optional.of(objectMapper.readTree(
+                        "{\"verdict\":\"caution\",\"triggeredBy\":\"cloudiness\",\"explanation\":\"Looks cloudy; treat this as a visual impression only.\"}"
+                ))
+        );
+        mockMvc.perform(multipart("/api/water/check")
+                        .file(new org.springframework.mock.web.MockMultipartFile(
+                                "image", "water.jpg", "image/jpeg", new byte[] {1, 2, 3})))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value("GEMINI"))
+                .andExpect(jsonPath("$.fallback").value(false))
+                .andExpect(jsonPath("$.explanation").value("Looks cloudy; treat this as a visual impression only."));
     }
 
     @Test

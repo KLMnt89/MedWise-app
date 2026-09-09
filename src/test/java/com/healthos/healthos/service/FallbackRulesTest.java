@@ -46,4 +46,11 @@ class FallbackRulesTest {
         FallbackRules.WaterFallback result = rules.water(7.2, 120, 0.5);
         assertEquals("safe", result.verdict());
     }
+
+    @Test
+    void waterFromPhotoAsksForManualReadings() {
+        FallbackRules.WaterFallback result = rules.waterFromPhoto();
+        assertEquals("caution", result.verdict());
+        assertTrue(result.explanation().toLowerCase().contains("photo"));
+    }
 }
