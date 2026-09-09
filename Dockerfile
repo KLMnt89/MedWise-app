@@ -8,6 +8,6 @@ RUN chmod +x mvnw && ./mvnw -q -DskipTests package
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/healthos-0.0.1-SNAPSHOT.jar app.jar
-ENV SPRING_PROFILES_ACTIVE=prod
+# H2 by default. Attach Postgres later by setting DATABASE_URL (jdbc or postgres://).
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -10,59 +10,68 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Railway and similar hosts provide {@code DATABASE_URL} as {@code postgres://user:pass@host:port/db}.
- * Spring needs a JDBC URL; this maps it when the prod profile is active.
+ * Hosts often provide {@code DATABASE_URL} as {@code postgres://user:pass@host:port/db}
+ * or as {@code jdbc:postgresql://...}. Spring needs a JDBC URL and the Postgres driver.
+ * If the variable is missing, leave the default H2 datasource in place.
  */
 public class ProdDataSourceEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        boolean prod = false;
-        for (String profile : environment.getActiveProfiles()) {
-            if ("prod".equals(profile)) {
-                prod = true;
-                break;
-            }
-        }
-        if (!prod) {
+        String databaseUrl = firstRealUrl(
+                environment.getProperty("DATABASE_URL"),
+                environment.getProperty("SPRING_DATASOURCE_URL")
+        );
+        if (databaseUrl == null) {
             return;
         }
-        String databaseUrl = environment.getProperty("DATABASE_URL");
-        if (databaseUrl == null || databaseUrl.isBlank()) {
-            return;
-        }
+
+        Map<String, Object> mapped = new HashMap<>();
+        mapped.put("spring.datasource.driver-class-name", "org.postgresql.Driver");
+        mapped.put("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
+
         if (databaseUrl.startsWith("jdbc:")) {
-            return;
+            mapped.put("spring.datasource.url", databaseUrl);
+        } else {
+            try {
+                URI uri = URI.create(databaseUrl);
+                String userInfo = uri.getUserInfo();
+                if (userInfo != null && userInfo.contains(":")) {
+                    int split = userInfo.indexOf(':');
+                    mapped.put("spring.datasource.username", userInfo.substring(0, split));
+                    mapped.put("spring.datasource.password", userInfo.substring(split + 1));
+                } else if (userInfo != null) {
+                    mapped.put("spring.datasource.username", userInfo);
+                }
+                String path = uri.getPath() == null ? "" : uri.getPath();
+                if (path.startsWith("/")) {
+                    path = path.substring(1);
+                }
+                int port = uri.getPort() > 0 ? uri.getPort() : 5432;
+                String jdbc = "jdbc:postgresql://" + uri.getHost() + ":" + port + "/" + path;
+                if (uri.getQuery() != null && !uri.getQuery().isBlank()) {
+                    jdbc += "?" + uri.getQuery();
+                }
+                mapped.put("spring.datasource.url", jdbc);
+            } catch (Exception ignored) {
+                return;
+            }
         }
-        try {
-            URI uri = URI.create(databaseUrl);
-            String userInfo = uri.getUserInfo();
-            String username = null;
-            String password = null;
-            if (userInfo != null && userInfo.contains(":")) {
-                int split = userInfo.indexOf(':');
-                username = userInfo.substring(0, split);
-                password = userInfo.substring(split + 1);
-            } else {
-                username = userInfo;
+        environment.getPropertySources().addFirst(new MapPropertySource("mappedDatabaseUrl", mapped));
+    }
+
+    private static String firstRealUrl(String... candidates) {
+        for (String value : candidates) {
+            if (value == null || value.isBlank()) {
+                continue;
             }
-            String path = uri.getPath() == null ? "" : uri.getPath();
-            if (path.startsWith("/")) {
-                path = path.substring(1);
+            if (value.contains("${") || value.equals("null")) {
+                continue;
             }
-            int port = uri.getPort() > 0 ? uri.getPort() : 5432;
-            String jdbc = "jdbc:postgresql://" + uri.getHost() + ":" + port + "/" + path;
-            Map<String, Object> mapped = new HashMap<>();
-            mapped.put("spring.datasource.url", jdbc);
-            if (username != null) {
-                mapped.put("spring.datasource.username", username);
+            if (value.startsWith("postgres://") || value.startsWith("postgresql://") || value.startsWith("jdbc:")) {
+                return value;
             }
-            if (password != null) {
-                mapped.put("spring.datasource.password", password);
-            }
-            environment.getPropertySources().addFirst(new MapPropertySource("railwayDatabaseUrl", mapped));
-        } catch (Exception ignored) {
-            // Leave configured datasource properties as-is if the URL cannot be parsed.
         }
+        return null;
     }
 }
