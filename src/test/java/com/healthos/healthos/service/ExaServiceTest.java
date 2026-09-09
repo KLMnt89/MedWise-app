@@ -26,4 +26,11 @@ class ExaServiceTest {
         assertTrue(formatted.contains("https://www.who.int/example"));
         assertTrue(formatted.contains("Safe drinking-water"));
     }
+
+    @Test
+    void parseJsonFromAnswerReadsObject() {
+        var mapper = JsonMapper.builder().build();
+        var node = ExaService.parseJsonFromAnswer(mapper, "here {\"verdict\":\"safe\"} extra").orElseThrow();
+        assertTrue(node.path("verdict").asText().equals("safe"));
+    }
 }

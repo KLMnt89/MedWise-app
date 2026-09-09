@@ -238,25 +238,19 @@ Returns the health score and today's medicine/blood/water summary shown on the h
 
 # 🤖 AI Integration
 
-Gemini is called directly from `GeminiService`, wrapped so a failure degrades gracefully rather than breaking a screen:
+Exa (`ExaService`) does OCR-adjacent lookup and the plain-language job via `/answer`. Photos are not read by Exa — name or lab values must be typed; image-only scans use local rules. If Exa fails, the same local fallback as before.
 
 ```text
-GeminiService.call(prompt, image?)
+ExaService.answer / generateJson
     │
-    ├── success → structured result shown to the user
+    ├── success → structured result (source EXA)
     │
     └── failure (bad key / quota / network / bad response)
-              → local fallback for that feature:
-                  • Medicine: small known-medicine lookup table
-                  • Blood: simple reference-range rules
+              → local fallback:
+                  • Medicine: known-medicine table
+                  • Blood: reference-range rules
                   • Water: pH / TDS / chlorine thresholds
-                  → clearly labeled "AI unavailable, showing basic analysis"
-
-POST /api/chat
-    │
-    ├── user history (6 months)
-    ├── Exa search (optional; skipped if the key is missing or the call fails)
-    └── Gemini writes the reply — web snippets are unverified background, not clinical evidence
+                  • Chat: dashboard reminder
 ```
 
 The AI must not:

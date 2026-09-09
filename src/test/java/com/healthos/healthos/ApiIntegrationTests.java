@@ -1,6 +1,6 @@
 package com.healthos.healthos;
 
-import com.healthos.healthos.service.GeminiService;
+import com.healthos.healthos.service.ExaService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,7 +12,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,7 +29,7 @@ class ApiIntegrationTests {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private GeminiService geminiService;
+    private ExaService exaService;
 
     @Test
     void healthIsOk() throws Exception {
@@ -43,8 +42,8 @@ class ApiIntegrationTests {
     }
 
     @Test
-    void medicineScanFallsBackWhenGeminiIsEmpty() throws Exception {
-        when(geminiService.generateJson(anyString(), any(), any())).thenReturn(Optional.empty());
+    void medicineScanFallsBackWhenExaIsEmpty() throws Exception {
+        when(exaService.generateJson(anyString())).thenReturn(Optional.empty());
 
         mockMvc.perform(multipart("/api/medicine/scan").param("name", "paracetamol"))
                 .andExpect(status().isOk())
@@ -54,8 +53,8 @@ class ApiIntegrationTests {
     }
 
     @Test
-    void waterCheckUsesLocalRulesWhenGeminiFails() throws Exception {
-        when(geminiService.generateJson(anyString(), any(), any())).thenReturn(Optional.empty());
+    void waterCheckUsesLocalRulesWhenExaFails() throws Exception {
+        when(exaService.generateJson(anyString())).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/water/check")
                         .contentType(MediaType.APPLICATION_JSON)

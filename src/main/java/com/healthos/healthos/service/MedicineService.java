@@ -19,20 +19,20 @@ import java.util.Optional;
 public class MedicineService {
 
     private final MedicineRepository medicineRepository;
-    private final GeminiService geminiService;
+    private final ExaService exaService;
     private final FallbackRules fallbackRules;
     private final CurrentUserService currentUserService;
     private final HealthosProperties properties;
 
     public MedicineService(
             MedicineRepository medicineRepository,
-            GeminiService geminiService,
+            ExaService exaService,
             FallbackRules fallbackRules,
             CurrentUserService currentUserService,
             HealthosProperties properties
     ) {
         this.medicineRepository = medicineRepository;
-        this.geminiService = geminiService;
+        this.exaService = exaService;
         this.fallbackRules = fallbackRules;
         this.currentUserService = currentUserService;
         this.properties = properties;
@@ -50,10 +50,15 @@ public class MedicineService {
                 dose and frequency must be general (pack/pharmacist/prescriber) — never invent a personal dose.
                 """.formatted(name == null ? "" : name);
 
-        Optional<JsonNode> ai = geminiService.generateJson(prompt, bytes, ImagePayload.mimeType(image));
+        Optional<JsonNode> ai = Optional.empty();
+        if (name != null && !name.isBlank()) {
+            ai = exaService.generateJson(prompt);
+        }
         Medicine entity = new Medicine();
         entity.setUserId(currentUserService.id());
-        if (ai.isPresent()) {
+        if (ai.isPresent() && (!ai.get().path("purpose").asText("").isBlank()
+                || !ai.get().path("dose").asText("").isBlank()
+                || !ai.get().path("explanation").asText("").isBlank())) {
             JsonNode node = ai.get();
             entity.setName(text(node, "name", name));
             entity.setPurpose(text(node, "purpose", null));
@@ -61,7 +66,7 @@ public class MedicineService {
             entity.setFrequency(text(node, "frequency", "As labelled"));
             entity.setWaterIntakeNote(text(node, "waterIntakeNote", "Take with water unless a clinician advised otherwise."));
             entity.setExplanation(text(node, "explanation", "General information only."));
-            entity.setSource("GEMINI");
+            entity.setSource("EXA");
         } else {
             FallbackRules.MedicineFallback fallback = fallbackRules.medicine(name);
             entity.setName(fallback.name());

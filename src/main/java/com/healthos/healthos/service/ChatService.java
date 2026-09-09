@@ -1,6 +1,5 @@
 package com.healthos.healthos.service;
 
-import tools.jackson.databind.JsonNode;
 import com.healthos.healthos.config.HealthosProperties;
 import com.healthos.healthos.dto.ChatMessageResponse;
 import com.healthos.healthos.entity.BloodReport;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,7 +25,6 @@ public class ChatService {
     private final MedicineRepository medicineRepository;
     private final BloodReportRepository bloodReportRepository;
     private final WaterCheckRepository waterCheckRepository;
-    private final GeminiService geminiService;
     private final ExaService exaService;
     private final CurrentUserService currentUserService;
     private final HealthosProperties properties;
@@ -37,7 +34,6 @@ public class ChatService {
             MedicineRepository medicineRepository,
             BloodReportRepository bloodReportRepository,
             WaterCheckRepository waterCheckRepository,
-            GeminiService geminiService,
             ExaService exaService,
             CurrentUserService currentUserService,
             HealthosProperties properties
@@ -46,7 +42,6 @@ public class ChatService {
         this.medicineRepository = medicineRepository;
         this.bloodReportRepository = bloodReportRepository;
         this.waterCheckRepository = waterCheckRepository;
-        this.geminiService = geminiService;
         this.exaService = exaService;
         this.currentUserService = currentUserService;
         this.properties = properties;
@@ -58,36 +53,22 @@ public class ChatService {
         save(userId, "USER", message, "USER");
 
         String context = buildHistoryContext(userId);
-        String web = exaService.searchContext(message);
-        boolean usedExa = web != null && !web.isBlank();
-        String webBlock = usedExa
-                ? web
-                : "(no web results — answer from the user's history and general knowledge only)";
         String prompt = """
                 The user asked: %s
                 Use this history context (last 6 months; recent entries in full, older ones summarized):
                 %s
-                Optional public-web snippets from Exa (unverified, not clinical evidence; prefer official sources if present):
-                %s
-                Treat web snippets as background only. Do not present them as a diagnosis or as a reason to change prescribed treatment.
+                Search and answer from public sources if useful. Treat the web as unverified background, not clinical evidence.
                 Return JSON: {"reply": string}
                 Give one clear next step in everyday language. Do not diagnose or change prescribed treatment.
-                """.formatted(message, context, webBlock);
+                """.formatted(message, context);
 
-        Optional<JsonNode> ai = geminiService.generateJson(prompt, null, null);
-        String reply;
+        String reply = exaService.chatReply(prompt);
         String source;
-        if (ai.isPresent()) {
-            reply = ai.get().path("reply").asText();
-            if (reply.isBlank()) {
-                reply = fallbackReply();
-                source = "LOCAL_FALLBACK";
-            } else {
-                source = usedExa ? "GEMINI_EXA" : "GEMINI";
-            }
-        } else {
+        if (reply == null || reply.isBlank()) {
             reply = fallbackReply();
             source = "LOCAL_FALLBACK";
+        } else {
+            source = "EXA";
         }
         ChatMessage assistant = save(userId, "ASSISTANT", reply, source);
         return toResponse(assistant);

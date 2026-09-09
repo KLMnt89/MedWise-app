@@ -24,7 +24,7 @@ import java.util.Optional;
 public class BloodService {
 
     private final BloodReportRepository bloodReportRepository;
-    private final GeminiService geminiService;
+    private final ExaService exaService;
     private final FallbackRules fallbackRules;
     private final CurrentUserService currentUserService;
     private final HealthosProperties properties;
@@ -32,14 +32,14 @@ public class BloodService {
 
     public BloodService(
             BloodReportRepository bloodReportRepository,
-            GeminiService geminiService,
+            ExaService exaService,
             FallbackRules fallbackRules,
             CurrentUserService currentUserService,
             HealthosProperties properties,
             ObjectMapper objectMapper
     ) {
         this.bloodReportRepository = bloodReportRepository;
-        this.geminiService = geminiService;
+        this.exaService = exaService;
         this.fallbackRules = fallbackRules;
         this.currentUserService = currentUserService;
         this.properties = properties;
@@ -60,16 +60,18 @@ public class BloodService {
                 Recommendations must be short and non-diagnostic. Do not diagnose.
                 """.formatted(valuesJson == null ? "{}" : valuesJson);
 
-        Optional<JsonNode> ai = geminiService.generateJson(prompt, bytes, ImagePayload.mimeType(image));
+        Optional<JsonNode> ai = manual.isEmpty()
+                ? Optional.empty()
+                : exaService.generateJson(prompt);
         BloodReport entity = new BloodReport();
         entity.setUserId(currentUserService.id());
         entity.setCreatedAt(Instant.now());
-        if (ai.isPresent()) {
+        if (ai.isPresent() && ai.get().has("flaggedValues")) {
             JsonNode node = ai.get();
             entity.setSummary(node.path("summary").asText("General information from the report."));
             entity.setFlaggedJson(node.path("flaggedValues").toString());
             entity.setRecommendationsJson(node.path("recommendations").toString());
-            entity.setSource("GEMINI");
+            entity.setSource("EXA");
         } else {
             FallbackRules.BloodFallback fallback = fallbackRules.blood(manual);
             entity.setSummary(fallback.summary());
