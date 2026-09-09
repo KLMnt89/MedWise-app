@@ -453,7 +453,8 @@ Apple Developer account → signed build → submission
 ☐ Local fallback logic for each feature
 ☐ AI Health Assistant chat + 6-month context
 ☐ Dashboard endpoint
-☐ Expo/React Native app (iPhone + web)
+☑ Expo starting page (health ping); remaining screens owned by frontend teammate
+☐ Expo/React Native feature screens (medicine, blood, water, chat, dashboard)
 ☐ Render + Netlify deployment (credits available)
 ☐ Apple Developer account / App Store build (deferred)
 ```
