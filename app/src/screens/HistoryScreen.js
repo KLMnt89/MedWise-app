@@ -3,7 +3,9 @@ import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View }
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import HealthGraph from '../components/HealthGraph';
+import Icon from '../components/Icon';
 import { GhostButton } from '../components/Buttons';
+import { CATEGORY_ICON } from '../constants/icons';
 import { colors, fonts, spacing, type } from '../theme';
 import { getDashboard, listBloodScans, listMedicines, listWaterChecks } from '../api/client';
 
@@ -64,7 +66,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'medicine',
         label: 'Medicine',
-        emoji: '💊',
         tone: 'medicine',
         summary:
           medicines.length === 0
@@ -74,7 +75,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'blood',
         label: 'Blood',
-        emoji: '🩸',
         tone: 'blood',
         summary: latestBlood
           ? `${latestBlood.flaggedValues?.length ?? 0} value(s) flagged. ${latestBlood.summary || ''}`.trim()
@@ -83,7 +83,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'water',
         label: 'Water',
-        emoji: '💧',
         tone: 'water',
         summary: latestWater
           ? `${latestWater.verdict || 'Checked'} · pH ${latestWater.ph ?? '–'}, TDS ${latestWater.tds ?? '–'}.`
@@ -92,7 +91,6 @@ export default function HistoryScreen({ onOpenChat }) {
       {
         key: 'assistant',
         label: 'AI Insights',
-        emoji: '✨',
         tone: 'assistant',
         summary:
           dashboard?.healthScoreNote ||
@@ -105,17 +103,16 @@ export default function HistoryScreen({ onOpenChat }) {
     const events = [];
     medicines.forEach((m) => {
       if (m.lastTakenAt) {
-        events.push({ id: `med-${m.id}`, time: m.lastTakenAt, emoji: '💊', title: `${m.name} taken`, tone: 'medicine' });
+        events.push({ id: `med-${m.id}`, time: m.lastTakenAt, title: `${m.name} taken`, tone: 'medicine' });
       }
     });
     bloodScans.forEach((b) => {
-      events.push({ id: `blood-${b.id}`, time: b.createdAt, emoji: '🩸', title: 'Blood report analyzed', tone: 'blood' });
+      events.push({ id: `blood-${b.id}`, time: b.createdAt, title: 'Blood report analyzed', tone: 'blood' });
     });
     waterChecks.forEach((w) => {
       events.push({
         id: `water-${w.id}`,
         time: w.createdAt,
-        emoji: '💧',
         title: `Water check · ${w.verdict || 'Checked'}`,
         tone: 'water',
       });
